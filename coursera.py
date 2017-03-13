@@ -24,8 +24,8 @@ def get_random_courses_urls(url, quantity_of_random_courses=20):
     return random_courses
 
 
-def get_course_info(course_slug):
-    page = requests.get(course_slug)
+def get_course_info(url):
+    page = requests.get(url)
     course_page = page.content
     page_soup = BeautifulSoup(course_page, 'lxml')
     course_title = page_soup.find('h1', class_='title display-3-text').text
@@ -34,8 +34,8 @@ def get_course_info(course_slug):
                                        class_='startdate rc-StartDateString caption-text').text[7:]
     course_duration = len(page_soup.find_all('div', class_='week'))
     if page_soup.find('div', class_='ratings-text bt3-hidden-xs'):
-        course_rating = page_soup.find('div',
-                                       class_='ratings-text bt3-hidden-xs').contents[1][20:]
+        course_rating = float(page_soup.find('div',
+                                             class_='ratings-text bt3-hidden-xs').contents[1][20:])
     else:
         course_rating = None
     course_data = namedtuple('course_data', ['course_title', 'course_lang', 'course_start_date',
@@ -74,6 +74,7 @@ if __name__ == '__main__':
     courses_urls = get_random_courses_urls(URL)
     print('Collecting courses data...')
     courses_data = collect_courses_data(courses_urls)
+    print(courses_data)
     workbook = output_courses_info_to_workbook(courses_data)
     save_to_xlsx(args.filename, workbook)
     print('Done!')
