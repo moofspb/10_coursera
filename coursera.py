@@ -8,20 +8,19 @@ from bs4 import BeautifulSoup
 
 
 URL = 'https://www.coursera.org/sitemap~www~courses.xml'
-RANDOM_COURSES = 20
 
 
 def get_random_list(original_list, new_list_length):
     return random.sample(original_list, new_list_length)
 
 
-def get_courses_list(url):
+def get_random_courses_urls(url, quantity_of_random_courses=20):
     page = requests.get(url)
     xml = page.content
     parsed_xml = etree.XML(xml)
     text_content = parsed_xml.xpath('//text()')
-    courses_urls = text_content[2::4]
-    random_courses = get_random_list(courses_urls, RANDOM_COURSES)
+    all_courses_urls = text_content[2::4]
+    random_courses = get_random_list(all_courses_urls, quantity_of_random_courses)
     return random_courses
 
 
@@ -49,14 +48,18 @@ def collect_courses_data(course_urls):
     return [get_course_info(url) for url in course_urls]
 
 
-def output_courses_info_to_xlsx(filename, courses_data):
+def output_courses_info_to_workbook(all_courses_data):
     headers = ['Title', 'Language', 'Start Date',
                'Duration(weeks)', 'User Rating']
     workbook = Workbook()
     worksheet = workbook.active
     worksheet.append(headers)
-    for course in courses_data:
+    for course in all_courses_data:
         worksheet.append(course)
+    return workbook
+
+
+def save_to_xlsx(filename, workbook):
     workbook.save(filename=filename + '.xlsx')
 
 
@@ -68,8 +71,9 @@ if __name__ == '__main__':
     args = parser.parse_args()
     print('The data will be saved in {}.xlsx'.format(args.filename))
     print('Getting courses list...')
-    courses_urls = get_courses_list(URL)
+    courses_urls = get_random_courses_urls(URL)
     print('Collecting courses data...')
     courses_data = collect_courses_data(courses_urls)
-    output_courses_info_to_xlsx(args.filename, courses_data)
+    workbook = output_courses_info_to_workbook(courses_data)
+    save_to_xlsx(args.filename, workbook)
     print('Done!')
