@@ -10,24 +10,19 @@ from bs4 import BeautifulSoup
 URL = 'https://www.coursera.org/sitemap~www~courses.xml'
 
 
-def get_random_list(original_list, new_list_length):
-    return random.sample(original_list, new_list_length)
-
-
-def get_random_courses_urls(url, quantity_of_random_courses=20):
+def get_random_courses_pages(url, quantity_of_random_courses=20):
     page = requests.get(url)
     xml = page.content
     parsed_xml = etree.XML(xml)
     text_content = parsed_xml.xpath('//text()')
     all_courses_urls = text_content[2::4]
-    random_courses = get_random_list(all_courses_urls, quantity_of_random_courses)
-    return random_courses
+    random_courses = random.sample(all_courses_urls, quantity_of_random_courses)
+    courses_pages = [requests.get(url).content for url in random_courses]
+    return courses_pages
 
 
-def get_course_info(url):
-    page = requests.get(url)
-    course_page = page.content
-    page_soup = BeautifulSoup(course_page, 'lxml')
+def parse_course_data(html):
+    page_soup = BeautifulSoup(html, 'lxml')
     course_title = page_soup.find('h1', class_='title display-3-text').text
     course_lang = page_soup.find('div', class_='rc-Language').contents[1]
     course_start_date = page_soup.find('div',
@@ -44,8 +39,8 @@ def get_course_info(url):
                        course_duration, course_rating)
 
 
-def collect_courses_data(course_urls):
-    return [get_course_info(url) for url in course_urls]
+def collect_courses_data(course_pages):
+    return [parse_course_data(page) for page in course_pages]
 
 
 def output_courses_info_to_workbook(all_courses_data):
@@ -71,10 +66,9 @@ if __name__ == '__main__':
     args = parser.parse_args()
     print('The data will be saved in {}.xlsx'.format(args.filename))
     print('Getting courses list...')
-    courses_urls = get_random_courses_urls(URL)
+    courses_urls = get_random_courses_pages(URL)
     print('Collecting courses data...')
     courses_data = collect_courses_data(courses_urls)
-    print(courses_data)
     workbook = output_courses_info_to_workbook(courses_data)
     save_to_xlsx(args.filename, workbook)
     print('Done!')
